@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Case Study: Nexus Internal Finance Suite — Hisham Nasser</title>
+  <meta name="description" content="How one finance analyst designed, built and shipped an internal finance operations suite on top of Odoo 17 Enterprise — ETA e-invoice reconciliation, VAT Form 10, P2P traceability, branch sync and more. Client anonymized." />
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://hisham333nasser-design.github.io/portfolio/case-study-nexus.html" />
+  <meta property="og:title" content="Nexus Internal Finance Suite — Case Study" />
+  <meta property="og:description" content="One command center for the finance team: VAT, AP×ETA reconciliation, P2P traceability, NL→EG branch sync, landed costs — read-only against production Odoo 17." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-nav">
+  <div class="container nav-inner">
+    <a class="brand" href="index.html"><span class="brand-dot"></span>Hisham Nasser</a>
+    <nav aria-label="Primary"><ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="case-study-nexus.html" aria-current="page">Case Study</a></li>
+      <li><a href="library.html">Problem Library</a></li>
+      <li><a href="demo.html">Demo</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><button class="theme-toggle" data-theme-toggle aria-label="Toggle dark mode">◐</button></li>
+    </ul></nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="container case-hero">
+    <span class="card-tag">Case Study · Client A — Industrial Services Group</span>
+    <h1 style="margin-top:.5rem">Nexus Internal<br />Finance Suite</h1>
+    <p class="lead" style="max-width:62ch">One LAN-hosted command center for the finance team of an Egyptian industrial-services group: ETA e-invoice reconciliation, VAT (Form 10), procure-to-pay traceability, NL↔EG intercompany transfers and landed costs — running read-only against a live Odoo 17 Enterprise instance.</p>
+    <div class="case-meta">
+      <span><b>My role:</b> sole finance-ops engineer + AP analyst</span>
+      <span><b>Stack:</b> Python stdlib · XML-RPC · SQLite · vanilla JS</span>
+      <span><b>Timeline:</b> Aug–Nov 2026 · iterative releases</span>
+      <span><b>Users:</b> AP &amp; finance team (LAN)</span>
+    </div>
+  </div>
+
+  <div class="container case-layout" style="padding:2.5rem 0">
+    <article class="prose">
+      <h3 id="problem">The problem</h3>
+      <p>The Odoo instance existed, but the procure-to-pay process largely lived outside it: RFQs and POs were created on paper and entered late (or never), no 3-way matching stood between an invoice and a payment, project/analytic allocation was missing on most purchase lines, and incoming Egyptian Tax Authority (ETA) e-invoices were checked by downloading portal exports by hand. Duplicate payments, missed invoices and penalty exposure were all live risks.</p>
+
+      <h3 id="context">Context &amp; constraints</h3>
+      <ul>
+        <li>Odoo <b>17 Enterprise, Odoo Online (SaaS)</b> — custom Python modules are not installable, so all automation had to live <b>outside</b> Odoo and work read-only over XML-RPC/JSON-RPC.</li>
+        <li>Egyptian ETA portal has no usable push feed for suppliers — incoming e-invoices can only be pulled with an authorized ERP registration; portal data had to be treated as the <b>source of truth</b> for what was actually posted.</li>
+        <li>Hard confidentiality rules (business rules written for the team): outputs in English, Arabic only for UI text; read-only against production; every correction gated by explicit approval.</li>
+      </ul>
+
+      <h3 id="arch">Architecture</h3>
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart LR
+    Odoo[(Odoo 17 Enterprise<br/>read-only XML-RPC)] --> SYNC[Sync layer<br/>fetch → normalize → SQLite]
+    ETA[Egypt ETA portal<br/>OAuth2 pull] --> SYNC
+    SYNC --> DB[(SQLite stores<br/>recon · P2P · treasury · bank)]
+    DB --> SRV[py_server.py<br/>stdlib http.server · :8788]
+    SRV --> UI[Single-page shell<br/>dark UI · iframed tool tabs]
+    SRV --> AUTH[auth_kit.py<br/>PBKDF2 · roles · audit hash-chain]
+        </pre>
+      </div>
+      <p>No framework, no build step, no cloud dependency: a single Python server serves the SPA, the APIs and the SQLite reads. Authentication is enforced with HttpOnly cookies, per-user tab permissions, a 72-hour read-only kill-switch and a hash-chained audit log. Unknown POSTs are denied by default.</p>
+
+      <h3 id="modules">Modules shipped (12)</h3>
+      <ol>
+        <li><b>VAT Return · Form 10</b> — sales/purchase books assembled from Odoo, XML-rate aware, Excel export for the tax preparer.</li>
+        <li><b>Invoice Control Tower</b> — ETA portal incoming e-invoices matched against Odoo vendor bills; 18-status model (matched / reference-mismatch / missing on portal / ETA rejected / ETA cancelled…).</li>
+        <li><b>AP × ETA Reconciliation</b> — legacy matching path kept live beside the Control Tower.</li>
+        <li><b>P2P Control Tower</b> — Bill → PO → Receipt traceability with PO-line analytic (project) allocation coverage.</li>
+        <li><b>Bank &amp; Treasury</b> — treasury/bank expense analysis with withholding-tax flags.</li>
+        <li><b>ETA Portal connect</b> — OAuth2 token flow for live portal pulls.</li>
+        <li><b>RFQ Builder</b> — parses PDF invoices and drafts RFQs/bills.</li>
+        <li><b>Branch Sync</b> — NL→EG cross-company stock transfer engine (dry-run default; landed-cost split).</li>
+        <li><b>Landed Cost</b> — true import cost (goods + freight + duty) allocated to stock valuations; Form-4 driven.</li>
+        <li><b>Cash Outflow</b> — supplier-voucher and stock-expense analysis, FX-aware.</li>
+        <li><b>Nexus Transfer</b> — live dashboard for the NL→EG intercompany transfer program.</li>
+        <li><b>Admin / Users</b> — user vault, roles, audit review, backup, read-only switch.</li>
+      </ol>
+
+      <h3 id="vendors">Vendor &amp; Accounts Payable flow</h3>
+      <div class="diagram">
+        <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    participant PR as Purchase (user)
+    participant Odoo as Odoo 17
+    participant WH as Warehouse
+    participant AP as AP team
+    participant ETA as Egypt ETA portal
+    PR->>Odoo: RFQ → approval → PO (project-linked)
+    Odoo->>WH: Receipt (three-way match source)
+    AP->>Odoo: Vendor bill referencing PO lines
+    ETA-->>AP: Incoming e-invoice (portal)
+    AP->>Odoo: 3-way match check (PO ✓ receipt ✓ bill ✓)
+    Odoo->>AP: Post + pay on schedule
+    AP->>AP: Monthly vendor statement reconciliation
+        </pre>
+      </div>
+      <p>Controls designed and enforced through the suite and SOP:</p>
+      <ul>
+        <li><b>Mandatory RFQ → PO in Odoo</b> before payment — no PO, no payment.</li>
+        <li><b>Project-linked POs</b> — customer + project number mandatory (root-caused via the P2P discovery: PR↔PO linkage was effectively zero and PO-line analytic coverage was low; the deck to senior management proposed exactly these fixes).</li>
+        <li><b>Three-way match gate</b> — invoice vs PO vs receipt before any payment run.</li>
+        <li><b>Duplicate-invoice detection</b> — normalized references catch near-identical IDs (including invisible Arabic diacritics).</li>
+        <li><b>Monthly vendor statement reconciliation</b> — supplier ledgers verified against statements; disputes resolved before payment.</li>
+        <li><b>Aging visibility</b> — current / 31–60 / 61–90 / 90+ buckets pushed weekly to the AP team.</li>
+      </ul>
+      <div class="kpi-row">
+        <div class="kpi"><b>Almost every bill line</b>carries a PO reference in discovery (problem: invisible to the process, so it changed nothing)</div>
+        <div class="kpi"><b>3 documents, 1 truth</b>PO · receipt · bill verified as one unit</div>
+        <div class="kpi"><b>Target: 0</b>duplicate payments — by matching control, not by effort</div>
+      </div>
+
+      <h3 id="challenges">Challenges → solutions</h3>
+      <ul>
+        <li><b>Invisible Arabic diacritics in ETA references</b> silently broke legacy exact matching → normalization pipeline (NFKC, zero-width strip, harakat removal, casefold) + O(n) indexed exact match with containment diagnostics.</li>
+        <li><b>Legacy tool returned false “MATCHED” verdicts</b> → deterministic 18-status model, completeness guard, supplier-risk weighting, and re-verdict of questionable legacy matches. Re-lookup went from 22.9s per click to 74–670ms, with a one-shot sync replacing repeated clicks entirely.</li>
+        <li><b>Live-system safety</b> → every write gated: dry-run default, DRAFT-only landed costs, before/after money snapshot with drift abort, and an audit row per applied change.</li>
+        <li><b>Multi-entity transfer drift (NL→EG)</b> → manifest-driven bot, per-item reconciliation, mirror JEs on interim clearing accounts; no customer-facing invoices between branches.</li>
+        <li><b>No source-controlled history</b> → change-control via dated build-log docs, route→permission maps, and snapshot backups before every merge.</li>
+      </ul>
+
+      <h3 id="results">Results (approved figures only)</h3>
+      <div class="kpi-row">
+        <div class="kpi"><b>30–300×</b>faster e-invoice lookups (22.9s → 74–670ms)</div>
+        <div class="kpi"><b>30–40</b> unit tests for the matching engine (fixtures only, no live system)</div>
+        <div class="kpi"><b>208k EGP</b>correction posted in a 49-item phantom-stock pilot</div>
+        <div class="kpi"><b>96.8M EGP</b>phantom stock diagnosed across ~935 local items</div>
+      </div>
+      <p>Beyond the numbers: a production sync surfaced a material backlog of portal-posted e-invoices missing from Odoo — escalated to management with a remediation plan; VAT Form 10 preparation became a repeatable, reviewable process; and the suite became the AP team's daily surface instead of scattered spreadsheets.</p>
+
+      <h3 id="lessons">Lessons</h3>
+      <ol>
+        <li>Fix controls at the source — process discipline beats after-the-fact cleanup.</li>
+        <li>Read-only first; writes only behind explicit approval with before/after snapshots.</li>
+        <li>Deterministic, testable engines over “smart” heuristics — especially for tax data.</li>
+        <li>Ship the small working thing (stdlib + SQLite) — the ambitious Node/React plan stayed a plan.</li>
+        <li>Audit everything; if it isn't logged, it didn't happen.</li>
+      </ol>
+
+      <div class="placeholder-shot">Screenshot — sanitized UI capture (suite shell, VAT dashboard)<br />available on request under NDA. Placeholder by design: no production screens published.</div>
+    </article>
+
+    <aside class="toc" aria-label="On this page">
+      <a href="#problem">The problem</a>
+      <a href="#context">Context &amp; constraints</a>
+      <a href="#arch">Architecture</a>
+      <a href="#modules">Modules (12)</a>
+      <a href="#vendors">Vendor &amp; AP flow</a>
+      <a href="#challenges">Challenges → solutions</a>
+      <a href="#results">Results</a>
+      <a href="#lessons">Lessons</a>
+    </aside>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <span>© <span data-year></span> Hisham Nasser Ibrahim</span>
+    <span><a href="index.html">← Home</a> · <a href="library.html">Problem Library →</a></span>
+  </div>
+</footer>
+<script src="assets/js/main.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, theme: 'dark' });</script>
+</body>
+</html>

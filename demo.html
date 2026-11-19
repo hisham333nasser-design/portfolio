@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nexus — Interactive Demo (fictional data) · Hisham Nasser</title>
+  <meta name="description" content="Experience the real UI language of the Nexus internal finance suite — aurora, glass cards, Dark/Mid/White themes, group sidebar, LAN-tool aesthetic — with 100% fictional data. Landed Cost and AP×ETA matcher are fully interactive." />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  <style>
+    /* ============================================================
+       NEXUS — pixel-faithful anonymized recreation of the real
+       suite shell (tokens, aurora, glass, sidebar, mood).
+       Branding is anonymized: "NEXUS FINANCE SUITE". Data: fake.
+       ============================================================ */
+    .nx-shell{
+      --bg:#05070d;--side:#080d16;--card:#0d1422;--chip:#111a2b;
+      --line:rgba(148,163,184,.10);--line2:rgba(148,163,184,.12);--line3:rgba(148,163,184,.16);
+      --txt:#e6edf7;--dim:#8ea0b8;--faint:#7d8fa9;
+      --cy:#22d3ee;--em:#34d399;--gold:#f5c451;--err:#f87171;--info:#60a5fa;
+      --grad:linear-gradient(135deg,#0891b2,#059669);--gradbtn:linear-gradient(135deg,#06b6d4,#10b981);
+      --warncard:rgba(245,196,81,.10);
+      --ease-out:cubic-bezier(.22,1,.36,1);--ease-inout:cubic-bezier(.4,0,.2,1);
+    }
+    .nx-shell[data-shell-theme="mid"]{--bg:#0a1420;--side:#0d1a28;--card:#122234;--chip:#18293e;--line:rgba(148,163,184,.2);--line2:rgba(148,163,184,.24);--line3:rgba(148,163,184,.28);--txt:#eaf2fb;--dim:#9db4d0;--faint:#66809f;--cy:#38d6f5;--warncard:rgba(245,158,11,.10)}
+    .nx-shell[data-shell-theme="light"]{--bg:#eef3fa;--side:#e4ebf4;--card:#ffffff;--chip:#f1f5f9;--line:rgba(15,42,77,.12);--line2:rgba(15,42,77,.16);--line3:rgba(15,42,77,.22);--txt:#0f2340;--dim:#51617a;--faint:#8b9cb3;--cy:#0891b2;--em:#059669;--gold:#b45309;--warncard:rgba(180,83,9,.10);--grad:linear-gradient(135deg,#0891b2,#059669)}
+
+    .nx-shell{position:relative;max-width:1180px;margin:1.5rem auto 1rem;height:640px;border:1px solid var(--line3);border-radius:14px;overflow:hidden;background:var(--bg);color:var(--txt);font-family:Inter,Cairo,system-ui,sans-serif;box-shadow:0 30px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.05)}
+    #nx-aurora{position:absolute;inset:-12%;z-index:0;pointer-events:none;filter:blur(60px) saturate(1.18)}
+    #nx-aurora i{position:absolute;border-radius:50%}
+    #nx-aurora .ka1{width:54vmax;height:54vmax;left:-16%;top:-12%;opacity:.5;background:radial-gradient(circle at 35% 35%,rgba(34,211,238,.36),transparent 62%);animation:nxaur1 26s ease-in-out infinite alternate}
+    #nx-aurora .ka2{width:48vmax;height:48vmax;right:-16%;top:16%;opacity:.45;background:radial-gradient(circle at 60% 40%,rgba(96,165,250,.26),transparent 62%);animation:nxaur2 31s ease-in-out infinite alternate}
+    #nx-aurora .ka3{width:44vmax;height:44vmax;left:28%;bottom:-24%;opacity:.4;background:radial-gradient(circle at 50% 45%,rgba(52,211,153,.26),transparent 60%);animation:nxaur3 37s ease-in-out infinite alternate}
+    @keyframes nxaur1{from{transform:translate(-6%,-4%) scale(1)}to{transform:translate(7%,9%) scale(1.18)}}
+    @keyframes nxaur2{from{transform:translate(5%,6%) scale(1.12)}to{transform:translate(-7%,-5%) scale(.94)}}
+    @keyframes nxaur3{from{transform:translate(0,6%) scale(.95)}to{transform:translate(-5%,-8%) scale(1.15)}}
+    @media (prefers-reduced-motion: reduce){#nx-aurora i{animation:none!important}}
+    #nx-net{position:absolute;inset:0;z-index:0;pointer-events:none}
+
+    .nx-hdr{position:relative;z-index:2;display:flex;align-items:center;gap:.75rem;height:58px;padding:0 16px;border-bottom:1px solid var(--line2);background:color-mix(in oklab,var(--side) 55%,transparent);backdrop-filter:blur(14px)}
+    .nx-mark{display:flex;align-items:center;gap:.6rem}
+    .nx-lg{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.28);box-shadow:0 0 18px rgba(34,211,238,.18) inset}
+    .nx-hdr b{font-size:13px;letter-spacing:.14em;font-weight:800}
+    .nx-hdr small{display:block;font-size:9px;color:var(--dim);letter-spacing:.05em}
+    .nx-fresh{display:flex;align-items:center;gap:.45rem;margin-left:auto;font-size:10.5px;color:var(--dim);background:var(--chip);border:1px solid var(--line2);border-radius:99px;padding:.28rem .65rem}
+    .nx-fresh .dot{width:6px;height:6px;border-radius:50%;background:var(--em);box-shadow:0 0 8px var(--em);animation:nxpulse 2.2s infinite}
+    @keyframes nxpulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .nx-theme{display:flex;align-items:center;gap:7px;padding:6px 12px;border-radius:10px;font-size:11.5px;font-weight:700;color:var(--dim);border:1px solid var(--line2);background:transparent;cursor:pointer;transition:color .18s,border-color .18s,transform .18s var(--ease-out)}
+    .nx-theme:hover{color:var(--txt);border-color:var(--cy);transform:translateY(-1px)}
+
+    .nx-body{position:relative;z-index:1;display:grid;grid-template-columns:210px 1fr;height:calc(100% - 58px)}
+    @media (max-width:880px){.nx-body{grid-template-columns:1fr}.nx-side{display:none}}
+    .nx-side{display:flex;flex-direction:column;border-right:1px solid var(--line2);background:color-mix(in oklab,var(--side) 70%,transparent);backdrop-filter:blur(14px);padding:10px 8px 8px;overflow-y:auto}
+    .nx-gh{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);padding:9px 10px 5px;white-space:nowrap}
+    .nx-item{display:flex;align-items:center;gap:10px;height:37px;padding:0 10px;margin-bottom:2px;border-radius:10px;color:var(--dim);font-size:11.5px;font-weight:600;border:0;background:transparent;width:100%;text-align:left;cursor:pointer;position:relative;transition:background .14s,color .14s}
+    .nx-item svg{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+    .nx-item:hover{background:rgba(148,163,184,.07);color:var(--txt)}
+    .nx-item.on{background:linear-gradient(90deg,rgba(34,211,238,.15),rgba(34,211,238,.02));color:#d8fbff}
+    .nx-item.on::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:99px;background:var(--gradbtn)}
+    .nx-item.locked{opacity:.4;cursor:not-allowed}
+    .nx-item .lk{margin-left:auto;font-size:9px}
+    .nx-sfoot{margin-top:auto;display:flex;align-items:center;gap:.55rem;border-top:1px solid var(--line2);padding:.55rem .45rem .1rem}
+    .nx-ava{width:30px;height:30px;border-radius:9px;background:var(--gradbtn);color:#04150e;font-weight:800;font-size:11px;display:grid;place-items:center}
+    .nx-who .nm{font-size:11px;font-weight:700}
+    .nx-who .rl{font-size:8.5px;color:var(--dim)}
+
+    .nx-main{padding:14px;overflow-y:auto;position:relative}
+    .nx-banner{display:flex;align-items:center;gap:.5rem;background:var(--warncard);border:1px solid rgba(245,196,81,.3);color:var(--gold);font-size:9.5px;border-radius:10px;padding:.35rem .65rem;margin-bottom:.65rem}
+    .nx-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem;margin-bottom:.7rem}
+    @media (max-width:880px){.nx-kpis{grid-template-columns:repeat(2,1fr)}}
+    .nx-kpi{background:color-mix(in oklab,var(--card) 82%,transparent);backdrop-filter:blur(10px);border:1px solid var(--line2);border-radius:12px;padding:.55rem .65rem;transition:transform .2s var(--ease-out)}
+    .nx-kpi:hover{transform:translateY(-2px)}
+    .nx-kpi .lb{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+    .nx-kpi .vl{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;margin:.15rem 0;letter-spacing:-.01em}
+    .nx-kpi .vl em{font-style:normal;color:var(--em)}
+    .nx-kpi .dl{font-size:8px;color:var(--dim)}
+    .nx-panel{background:color-mix(in oklab,var(--card) 88%,transparent);backdrop-filter:blur(12px);border:1px solid var(--line2);border-radius:12px;padding:12px 14px;margin-bottom:.65rem;position:relative;overflow:hidden}
+    .nx-sheen{position:absolute;inset:0;pointer-events:none}
+    .nx-sheen::before{content:"";position:absolute;top:-30%;bottom:-30%;left:-45%;width:36%;transform:skewX(-16deg);background:linear-gradient(105deg,transparent,rgba(34,211,238,.05) 45%,rgba(34,211,238,.12) 50%,rgba(34,211,238,.05) 55%,transparent);animation:nxsheen 9s var(--ease-inout) infinite}
+    @keyframes nxsheen{0%{left:-45%;opacity:0}6%{opacity:1}55%,100%{left:125%;opacity:0}}
+    @media (prefers-reduced-motion: reduce){.nx-sheen::before{animation:none}}
+    .nx-panel h3{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--cy);margin:0 0 .5rem}
+    table.nx-t{width:100%;border-collapse:collapse;font-size:11px}
+    table.nx-t th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);text-align:start;padding:6px 8px;border-bottom:1px solid var(--line2)}
+    table.nx-t td{padding:6px 8px;border-bottom:1px solid rgba(148,163,184,.07);font-family:'JetBrains Mono',monospace;font-size:10px;font-variant-numeric:tabular-nums}
+    table.nx-t td.nm{font-family:Inter}
+    table.nx-t tbody tr{transition:background .14s}
+    table.nx-t tbody tr:hover{background:rgba(34,211,238,.05)}
+    table.nx-t tr.tot td{border-top:1px solid rgba(34,211,238,.35);color:var(--cy);font-weight:700;border-bottom:0}
+    .nx-seg{display:inline-flex;background:var(--chip);border:1px solid var(--line2);border-radius:9px;overflow:hidden;margin:.25rem 0 .5rem}
+    .nx-seg button{border:0;background:transparent;color:var(--dim);font:600 10px Inter;padding:.35rem .7rem;cursor:pointer}
+    .nx-seg button.active{background:var(--gradbtn);color:#04150e;font-weight:800}
+    .nx-btn{background:var(--gradbtn);border:0;color:#04150e;border-radius:9px;font:800 10px Inter;letter-spacing:.04em;padding:.5rem .9rem;cursor:pointer;transition:transform .15s var(--ease-out)}
+    .nx-btn:hover{transform:translateY(-1px)}
+    .nx-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+    .nx-btn.ghost{background:var(--chip);color:var(--txt);border:1px solid var(--line2)}
+    .nx-log{background:#02070d;border:1px solid var(--line2);border-radius:9px;padding:.5rem .65rem;font-family:'JetBrains Mono',monospace;font-size:9px;color:#7fd6ab;display:none;max-height:130px;overflow-y:auto;margin-top:.5rem}
+    .nx-log .dim{color:#5f7280}
+    .nx-ok{color:var(--em);font-weight:700}
+    .nx-journal{background:#02070d;border:1px solid var(--line2);border-radius:9px;padding:.55rem .7rem;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#b8cfc5;white-space:pre;overflow-x:auto;margin:.4rem 0}
+    .nx-approve{display:flex;gap:.5rem;align-items:center;font-size:10px;color:var(--gold);cursor:pointer;user-select:none}
+    .nx-caps{display:flex;gap:.4rem;flex-wrap:wrap;margin:.35rem 0}
+    .nx-cap{font-size:8.5px;font-weight:700;letter-spacing:.05em;border:1px solid var(--line2);color:var(--dim);border-radius:6px;padding:.15rem .4rem}
+    .nx-cap.hot{color:#f5c451;border-color:rgba(245,196,81,.4)}
+    .st{font-size:8px;font-weight:800;letter-spacing:.08em;border-radius:5px;padding:.1rem .35rem;white-space:nowrap}
+    .st-ok{background:rgba(52,211,153,.12);color:#34d399}.st-miss{background:rgba(248,113,113,.12);color:#f87171}.st-mis{background:rgba(245,196,81,.12);color:#f5c451}.st-rej{background:rgba(192,132,252,.12);color:#c99df0}
+    .nx-toast{position:absolute;bottom:14px;right:14px;z-index:5;background:#131a22;border:1px solid var(--line3);color:var(--txt);font-size:10.5px;border-radius:10px;padding:.45rem .75rem;opacity:0;transform:translateY(8px);transition:opacity .25s,transform .25s;pointer-events:none;box-shadow:0 14px 34px rgba(0,0,0,.4)}
+    .nx-toast.show{opacity:1;transform:none}
+    input[type=checkbox]{accent-color:#10b981}
+    .nx-plain{background:rgba(34,211,238,.07);border:1px solid rgba(34,211,238,.3);border-left:3px solid var(--cy);border-radius:10px;padding:.55rem .75rem;font-size:11.5px;line-height:1.75;color:var(--txt);margin:.5rem 0}
+    .nx-plain b{color:#a5f3fc}
+    .nx-plain .big{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:#fff}
+    html[data-shell-theme="light"] .nx-plain .big, .nx-shell[data-shell-theme="light"] .nx-plain .big{color:#0f2340}
+    .nx-details{margin:.3rem 0 .1rem}
+    .nx-steps{font-size:9.5px;color:var(--dim);background:rgba(148,163,184,.05);border:1px dashed var(--line2);padding:.4rem .65rem;border-radius:9px;margin-bottom:.65rem}
+    .nx-details summary{cursor:pointer;font-size:9.5px;color:var(--dim);user-select:none;list-style:none}
+    .nx-details summary::before{content:'▸ '}
+    .nx-details[open] summary::before{content:'▾ '}
+  </style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-nav">
+  <div class="container nav-inner">
+    <a class="brand" href="index.html"><span class="brand-dot"></span>Hisham Nasser</a>
+    <nav aria-label="Primary"><ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="case-study-nexus.html">Case Study</a></li>
+      <li><a href="library.html">Problem Library</a></li>
+      <li><a href="demo.html" aria-current="page">Demo</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><button class="theme-toggle" data-theme-toggle aria-label="Toggle dark mode">◐</button></li>
+    </ul></nav>
+  </div>
+</header>
+
+<main id="main" class="container" style="padding-bottom: 3rem;">
+  <div style="padding: 1.6rem 0 .4rem; text-align:center;">
+    <span class="card-tag">Interactive Demo — pixel-faithful recreation · fictional data</span>
+    <h1 style="margin:.35rem 0 .25rem;font-size:clamp(1.5rem,3.4vw,2.2rem)">The real Nexus shell, in your browser.</h1>
+    <p style="color:var(--text-dim);max-width:66ch;margin:0 auto;font-size:.92rem">Same tokens, aurora, glass and Dark/Mid/White themes as the production suite — anonymized branding, invented data. The Landed Cost engine and the AP × ETA matcher are fully interactive; everything else mirrors the production map (locked tabs = other real modules).</p>
+  </div>
+
+  <!-- ================= NEXUS SHELL (recreated) ================= -->
+  <div class="nx-shell" role="application" aria-label="Nexus finance suite demo">
+    <div id="nx-aurora" aria-hidden="true"><i class="ka1"></i><i class="ka2"></i><i class="ka3"></i></div>
+    <canvas id="nx-net" aria-hidden="true"></canvas>
+
+    <header class="nx-hdr">
+      <div class="nx-mark">
+        <div class="nx-lg" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <defs><linearGradient id="nxlg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#059669"/></linearGradient></defs>
+            <path d="M12 2l8.66 5v10L12 22l-8.66-5V7L12 2z" stroke="url(#nxlg)" stroke-width="1.6"/>
+            <path d="M12 7v10M8.5 9.5L12 12l3.5-2.5" stroke="#f5c451" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div><b>NEXUS SUITE</b><small>Internal financial suite — demo</small></div>
+      </div>
+      <div class="nx-fresh"><span class="dot"></span><span>synced ≤ 2m</span></div>
+      <button class="nx-theme" id="nxThemeBtn" title="Theme: Dark → Mid → White">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>
+        <span id="nxThemeLbl">Dark</span>
+      </button>
+    </header>
+
+    <div class="nx-body">
+      <aside class="nx-side" aria-label="Suite navigation">
+        <div class="nx-gh">Reconcile</div>
+        <button class="nx-item" data-mod="match"><svg viewBox="0 0 24 24"><path d="M17 3l4 4-4 4M21 7H8a5 5 0 0 0-5 5M7 21l-4-4 4-4M3 17h13a5 5 0 0 0 5-5"/></svg>AP × ETA Reconcile</button>
+        <button class="nx-item locked" disabled><svg viewBox="0 0 24 24"><path d="M2 12h6l3 6 4-12 3 6h4"/><circle cx="12" cy="12" r="9"/></svg>Branch Sync<span class="lk">🔒</span></button>
+        <button class="nx-item locked" disabled><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V10l4 4 4-7 4 7 2-3v10"/></svg>Control Tower<span class="lk">🔒</span></button>
+        <div class="nx-gh">Procure &amp; Transfer</div>
+        <button class="nx-item locked" disabled><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>Procure &amp; Pay<span class="lk">🔒</span></button>
+        <button class="nx-item locked" disabled><svg viewBox="0 0 24 24"><path d="M9 12h6M9 16h4M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"/><path d="M14 3v5h5"/></svg>Vendor Docs / RFQ<span class="lk">🔒</span></button>
+        <button class="nx-item locked" disabled><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>ETA Portal<span class="lk">🔒</span></button>
+        <button class="nx-item locked" disabled><svg viewBox="0 0 24 24"><path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg>Branch Transfer<span class="lk">🔒</span></button>
+        <div class="nx-gh">Cost &amp; Tax</div>
+        <button class="nx-item" data-mod="vat"><svg viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M13 3H7a2 2 0 0 0-2 2v14l2-1 2 1 2-1 2 1 2-1 2 1V5a2 2 0 0 0-2-2h-2"/></svg>Tax (VAT / ETA)</button>
+        <button class="nx-item on" data-mod="lc"><svg viewBox="0 0 24 24"><path d="M12 2l8 4.5v9L12 20l-8-4.5v-9L12 2M12 22v-2"/><path d="M4 11l8 4.5M20 11l-8 4.5M12 6.5L4 11M12 6.5l8 4.5"/></svg>Landed Cost</button>
+        <button class="nx-item locked" disabled><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/><path d="M19 6h-4M19 6v4"/></svg>Outflow<span class="lk">🔒</span></button>
+        <div class="nx-gh">Admin</div>
+        <button class="nx-item locked" disabled><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/><circle cx="17" cy="16" r="3"/></svg>Users &amp; Admin<span class="lk">🔒</span></button>
+
+        <div class="nx-sfoot">
+          <div class="nx-ava">HN</div>
+          <div class="nx-who"><div class="nm">Demo Admin</div><div class="rl">Finance · read-only</div></div>
+        </div>
+      </aside>
+
+      <div class="nx-main">
+        <div class="nx-banner">⚠️ <span><b>DEMO</b> — branding anonymized, every figure invented. The production app is LAN-only and read-only against Odoo 17.</span></div>
+        <div class="nx-steps">① Pick how to split the extra costs → ② read the plain-words line below the table → ③ tick “I’m OK” → press RUN THE CHECK. Nothing ever posts in this demo — it’s data you can’t hurt.</div>
+
+        <div class="nx-kpis" aria-label="Fake KPIs">
+          <div class="nx-kpi"><div class="lb">PO compliance</div><div class="vl"><em>≥95%</em></div><div class="dl">target after P2P rollout</div></div>
+          <div class="nx-kpi"><div class="lb">Invoice cycle</div><div class="vl">≤ 2 <em>days</em></div><div class="dl">down from 5+ baseline (target)</div></div>
+          <div class="nx-kpi"><div class="lb">Dup. payments</div><div class="vl"><em>0</em></div><div class="dl">3-way match gate</div></div>
+          <div class="nx-kpi"><div class="lb">Cost visibility</div><div class="vl"><em>Live</em></div><div class="dl">analytic on PO lines</div></div>
+        </div>
+
+        <!-- ========== LANDED COST ========== -->
+        <section id="mod-lc" aria-label="Landed Cost">
+          <div class="nx-panel"><div class="nx-sheen"></div>
+            <h3>📦 Landed Cost · Shipment AWB-2026-0117 · Delta Alloy Trading Co. (fake)</h3>
+            <div class="nx-caps"><span class="nx-cap hot">FORM-4 RELEASE</span><span class="nx-cap">EXW · AIR CAI</span><span class="nx-cap">FX 46.80</span><span class="nx-cap">DUTY 18.5%</span><span class="nx-cap">DRAFT-ONLY POST</span></div>
+            <table class="nx-t" style="margin-top:.3rem">
+              <thead><tr><th>Code</th><th>Item</th><th>Qty</th><th>USD/unit</th><th>Line EGP</th><th>Wt kg</th></tr></thead>
+              <tbody id="lcRows"></tbody>
+              <tfoot><tr class="tot"><td colspan="4">GOODS VALUE</td><td id="goodsTotal"></td><td></td></tr></tfoot>
+            </table>
+          </div>
+
+          <div class="nx-panel"><div class="nx-sheen" style="animation-delay:-4s"></div>
+            <h3>Allocation engine · live</h3>
+            <div class="nx-seg" role="group" aria-label="Allocation method">
+              <button class="active" data-method="value">By value</button><button data-method="qty">By quantity</button><button data-method="weight">By weight</button>
+            </div>
+            <table class="nx-t">
+              <thead><tr><th>Code</th><th>Freight+etc</th><th>Duty</th><th>Landed total</th><th>Landed /unit</th><th>Uplift</th></tr></thead>
+              <tbody id="lcResult"></tbody>
+              <tfoot><tr class="tot"><td>Σ</td><td id="tFreight"></td><td id="tDuty"></td><td id="tLanded"></td><td>—</td><td>—</td></tr></tfoot>
+            </table>
+            <div class="nx-plain" id="plainExplain" aria-live="polite"></div>
+            <details class="nx-details">
+              <summary>View the accounting entries (optional)</summary>
+              <div class="nx-journal" id="journalPreview"></div>
+            </details>
+            <label class="nx-approve"><input type="checkbox" id="approveBox" /> I'm OK with this allocation — try it (nothing posts; this is a demo)</label>
+            <div style="margin-top:.45rem;display:flex;gap:.5rem"><button class="nx-btn" id="applyBtn" disabled>RUN THE CHECK</button></div>
+            <div class="nx-log" id="applyLog" aria-live="polite"></div>
+          </div>
+        </section>
+
+        <!-- ========== AP × ETA ========== -->
+        <section id="mod-match" hidden aria-label="AP x ETA matcher">
+          <div class="nx-panel"><div class="nx-sheen"></div>
+            <h3>🎯 AP × ETA Reconciliation · normalize → exact-ID → verify → verdict</h3>
+            <div class="match-cols" style="display:grid;grid-template-columns:1fr 1fr;gap:.7rem;margin-bottom:.55rem">
+              <div><div class="nx-gh" style="padding-left:0">Odoo · vendor bills</div><div id="odooCol"></div></div>
+              <div><div class="nx-gh" style="padding-left:0">ETA portal · incoming</div><div id="portalCol"></div></div>
+            </div>
+            <div style="display:flex;gap:.5rem;margin:.4rem 0 .5rem"><button class="nx-btn" id="runMatchBtn">RUN MATCHING</button><button class="nx-btn ghost" id="resetMatchBtn">Reset</button></div>
+            <div id="matchDetail" style="font-size:10px;color:var(--dim);border-left:3px solid var(--cy);padding:.4rem .6rem;background:rgba(34,211,238,.05);border-radius:0 8px 8px 0;min-height:2.2rem">5 fictional bills × 6 fictional portal docs. The real engine does NFKC → strip zero-width → strip harakat → casefold → exact match with containment diagnostics, then 18 verdicts.</div>
+          </div>
+        </section>
+
+        <!-- ========== VAT ========== -->
+        <section id="mod-vat" hidden aria-label="VAT Form 10">
+          <div class="nx-panel"><div class="nx-sheen"></div>
+            <h3>🧾 VAT Return · Form 10 · Oct 2026 (fictional)</h3>
+            <table class="nx-t">
+              <thead><tr><th>Line</th><th>Net (EGP)</th><th>VAT (EGP)</th></tr></thead>
+              <tbody>
+                <tr><td class="nm">Sales 14% — output VAT</td><td>12,400,000.00</td><td>1,736,000.00</td></tr>
+                <tr><td class="nm">Purchases 14% — deductible (Box 6, has e-invoice)</td><td>8,200,000.00</td><td>1,148,000.00</td></tr>
+                <tr><td class="nm">“14% (Copy)” internal non-deductible — excluded</td><td>950,000.00</td><td>—</td></tr>
+                <tr><td class="nm">Schedule annex taxes — reported separately</td><td>—</td><td>74,300.00</td></tr>
+                <tr class="tot"><td class="nm">NET VAT PAYABLE</td><td>—</td><td>588,000.00</td></tr>
+              </tbody>
+            </table>
+            <p style="font-size:8.5px;color:var(--dim);margin-top:.4rem">Production build also flags deductible input VAT without an ETA e-invoice → real penalty exposure, not noise.</p>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <div class="nx-toast" id="nxToast" role="status"></div>
+  </div>
+  <!-- =============== /NEXUS SHELL =============== -->
+
+  <p style="text-align:center;margin:.9rem 0 0"><a class="btn btn-ghost" href="case-study-nexus.html">← How this was built (case study)</a></p>
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <span>© <span data-year></span> Hisham Nasser Ibrahim — demo, fictional data</span>
+    <span><a href="index.html">← Home</a> · <a href="https://github.com/hisham333nasser-design" rel="me">GitHub</a></span>
+  </div>
+</footer>
+
+<script>
+'use strict';
+/* ============ starfield (compositor-friendly, respects reduced motion) ============ */
+(function () {
+  const c = document.getElementById('nx-net'); if (!c) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const x = c.getContext('2d'); const shell = c.parentElement;
+  let w, h, stars = [];
+  function size() { w = c.width = shell.offsetWidth; h = c.height = shell.offsetHeight;
+    stars = Array.from({ length: 90 }, () => ({ x: Math.random() * w, y: Math.random() * h, r: Math.random() * 1.4 + .3, p: Math.random() * Math.PI * 2, s: .008 + Math.random() * .02 })); }
+  size(); window.addEventListener('resize', size);
+  let t = 0;
+  (function frame() { t += .016; x.clearRect(0, 0, w, h);
+    for (const s of stars) { const a = .35 + .65 * (0.5 + 0.5 * Math.sin(t * s.s * 60 + s.p));
+      x.beginPath(); x.arc(s.x, s.y, s.r, 0, 7); x.fillStyle = 'rgba(190,225,255,' + a.toFixed(3) + ')'; x.fill(); }
+    requestAnimationFrame(frame); })();
+})();
+
+/* ================= shell theme cycling (Dark → Mid → White) — scoped to the shell, not the page ================= */
+(function () {
+  const order = ['dark', 'mid', 'light'];
+  const labels = { dark: 'Dark', mid: 'Mid', light: 'White' };
+  const shell = document.querySelector('.nx-shell');
+  const btn = document.getElementById('nxThemeBtn'), lbl = document.getElementById('nxThemeLbl');
+  let cur = 0;
+  try { const s = localStorage.getItem('nx-shell-theme'); if (s && order.includes(s)) cur = order.indexOf(s); } catch (e) { /* ignore */ }
+  function apply() { shell.setAttribute('data-shell-theme', order[cur]); lbl.textContent = labels[order[cur]]; try { localStorage.setItem('nx-shell-theme', order[cur]); } catch (e) { /* ignore */ } }
+  btn.addEventListener('click', () => { cur = (cur + 1) % 3; apply(); toast('Theme → ' + labels[order[cur]]); });
+  apply();
+})();
+const toastEl = document.getElementById('nxToast');
+let toastTimer;
+function toast(msg) { toastEl.textContent = msg; toastEl.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200); }
+
+/* ================= LANDED COST engine (fictional) ================= */
+const fmt = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fx = 46.8, dutyRate = 0.185;
+const extra = { freight: 42500, handling: 3250, insurance: 1150, brokerage: 2750 };
+const extraSum = extra.freight + extra.handling + extra.insurance + extra.brokerage;
+const products = [
+  { code: 'DMO-100', item: 'Die set — hydraulic press', qty: 2, usd: 18500, kg: 1480 },
+  { code: 'DMO-205', item: 'Silicone sealing kit (box)', qty: 40, usd: 92, kg: 96 },
+  { code: 'DMO-310', item: 'Conveyor chain assembly', qty: 12, usd: 2740, kg: 540 }
+];
+const goodsOf = p => p.qty * p.usd * fx;
+const goodsTotal = products.reduce((s, p) => s + goodsOf(p), 0);
+const sumQty = products.reduce((s, p) => s + p.qty, 0), sumKg = products.reduce((s, p) => s + p.kg, 0);
+const shareOf = { value: p => goodsOf(p) / goodsTotal, qty: p => p.qty / sumQty, weight: p => p.kg / sumKg };
+const dutyOf = p => goodsOf(p) * dutyRate;
+let method = 'value';
+
+function renderAll() {
+  document.getElementById('goodsTotal').textContent = fmt(goodsTotal) + ' EGP';
+  // plain-language summary (updates with the method selector)
+  const dutyTot = products.reduce((s, p) => s + dutyOf(p), 0);
+  const landedTot = goodsTotal + extraSum + dutyTot;
+  const methodName = method === 'value' ? 'value' : method === 'qty' ? 'quantity' : 'weight';
+  document.getElementById('plainExplain').innerHTML =
+    `<b>In plain words:</b> this shipment <u>really costs</u> <span class="big">${fmt(landedTot)} EGP</span> — not the <span class="big">${fmt(goodsTotal)} EGP</span> on the invoice.<br>` +
+    `The extra <b>${fmt(extraSum + dutyTot)} EGP</b> = freight ${fmt(extra.freight)} + handling ${fmt(extra.handling)} + insurance ${fmt(extra.insurance)} + brokerage ${fmt(extra.brokerage)} + customs duty ${fmt(dutyTot)} (18.5%).<br>` +
+    `It gets spread over the 3 items <b>by ${methodName}</b>, so your stock value and margins stay honest — no guessing at month-end.`;
+  document.getElementById('lcRows').innerHTML = products.map(p =>
+    `<tr><td class="nm">${p.code}</td><td class="nm">${p.item}</td><td>${p.qty}</td><td>${fmt(p.usd)}</td><td>${fmt(goodsOf(p))}</td><td>${fmt(p.kg)}</td></tr>`).join('');
+  let tF = 0, tD = 0, tL = 0;
+  document.getElementById('lcResult').innerHTML = products.map(p => {
+    const f = extraSum * shareOf[method](p), d = dutyOf(p), landed = goodsOf(p) + f + d;
+    const unit = landed / p.qty, uplift = (unit / (p.usd * fx) - 1) * 100;
+    tF += f; tD += d; tL += landed;
+    return `<tr><td class="nm">${p.code}</td><td>${fmt(f)}</td><td>${fmt(d)}</td><td>${fmt(landed)}</td><td>${fmt(unit)}</td><td style="color:var(--gold)">+${uplift.toFixed(1)}%</td></tr>`;
+  }).join('');
+  document.getElementById('tFreight').textContent = fmt(tF);
+  document.getElementById('tDuty').textContent = fmt(tD);
+  document.getElementById('tLanded').textContent = fmt(tL) + ' EGP';
+  const lines = products.map(p => {
+    const f = extraSum * shareOf[method](p);
+    return `Dr  Inventory – ${p.code}${' '.repeat(Math.max(1, 16 - p.code.length))}${fmt(f + dutyOf(p)).padStart(12)}\nCr  Landed Cost Clearing${' '.repeat(5)}${fmt(f + dutyOf(p)).padStart(12)}`;
+  }).join('\n');
+  document.getElementById('journalPreview').textContent =
+    'DRAFT — Landed Cost (not posted)\n' + '─'.repeat(48) + '\n' + lines + '\n' + '─'.repeat(48) +
+    `\nClearing total: ${fmt(products.reduce((s, p) => s + extraSum * shareOf[method](p) + dutyOf(p), 0))} EGP`;
+}
+renderAll();
+
+document.querySelectorAll('.nx-seg [data-method]').forEach(btn => btn.addEventListener('click', () => {
+  method = btn.dataset.method;
+  document.querySelectorAll('.nx-seg [data-method]').forEach(b => b.classList.toggle('active', b === btn));
+  renderAll();
+  toast('Allocation → by ' + (method === 'value' ? 'value' : method === 'qty' ? 'quantity' : 'weight'));
+}));
+
+const approveBox = document.getElementById('approveBox'), applyBtn = document.getElementById('applyBtn'), applyLog = document.getElementById('applyLog');
+approveBox.addEventListener('change', () => { applyBtn.disabled = !approveBox.checked; });
+applyBtn.addEventListener('click', async () => {
+  applyBtn.disabled = true; applyLog.style.display = 'block'; applyLog.innerHTML = '';
+  const steps = [
+    ['Take a before-photo of the numbers…', 'dim'],
+    ['Safety check: have the numbers moved since?………… <span class="nx-ok">PASS — nothing moved</span>', ''],
+    ['Build the allocation as a DRAFT…', 'dim'],
+    ['Split freight, handling, insurance, brokerage and duty', 'dim'],
+    ['Write the audit trail: who pressed it, what changed, when', 'dim'],
+    ['<span class="nx-ok">DONE.</span> That\'s it. The real journal only posts if a human confirms in Odoo — never automatically.', '']
+  ];
+  for (const [text, cls] of steps) { const d = document.createElement('div'); d.className = cls === 'dim' ? 'dim' : ''; d.innerHTML = '› ' + text; applyLog.appendChild(d); applyLog.scrollTop = applyLog.scrollHeight; await new Promise(r => setTimeout(r, 300)); }
+  const s = document.createElement('div'); s.className = 'dim'; s.innerHTML = '› audit id: LCA-DEMO-0117-004 · ' + new Date().toISOString(); applyLog.appendChild(s);
+  toast('Draft staged — awaiting human post');
+});
+
+/* ================= AP × ETA matcher (fictional) ================= */
+const odooBills = [
+  { id: 'BILL/2026/10/0418', ref: 'INV-88112', supplier: 'Delta Alloy Trading Co.', amt: '118,400.00' },
+  { id: 'BILL/2026/10/0421', ref: 'SF-2026-1156', supplier: 'Cairo Electrical Supplies', amt: '36,750.00' },
+  { id: 'BILL/2026/10/0427', ref: 'TS/0922', supplier: 'Delta Alloy Trading Co.', amt: '402,900.00' },
+  { id: 'BILL/2026/10/0433', ref: 'INV-88190', supplier: 'Mediterranean Fasteners', amt: '21,300.00' },
+  { id: 'BILL/2026/10/0440', ref: 'CN-1144', supplier: 'Cairo Electrical Supplies', amt: '9,850.00' }
+];
+const portalDocs = [
+  { int: 'ETAINT-7001', ref: 'INV-88112', supplier: 'Delta Alloy Trading Co.', amt: '118,400.00' },
+  { int: 'ETAINT-7002', ref: 'SF-2026-1156', supplier: 'Cairo Electrical Supplies', amt: '36,750.00' },
+  { int: 'ETAINT-7003', ref: 'TS/0922', supplier: 'Delta Alloy Trading Co.', amt: '298,900.00' },
+  { int: 'ETAINT-7004', ref: 'XK-2291', supplier: 'Mediterranean Fasteners', amt: '21,300.00' },
+  { int: 'ETAINT-7005', ref: 'CN-1144', supplier: 'Cairo Electrical Supplies', amt: '9,850.00' },
+  { int: 'ETAINT-7006', ref: 'INV-88190', supplier: 'Mediterranean Fasteners', amt: '21,300.00' }
+];
+document.getElementById('odooCol').innerHTML = odooBills.map(b =>
+  `<div style="display:flex;justify-content:space-between;gap:.7rem;border:1px solid var(--line2);border-radius:8px;padding:.35rem .55rem;margin-bottom:.35rem;font-size:9px;background:rgba(13,20,34,.6)"><span><b class="nx-mono" style="font-family:'JetBrains Mono',monospace;color:#cde7ff">${b.id}</b><br><span style="color:var(--dim)">${b.supplier} · ${b.ref}</span></span><span style="font-family:'JetBrains Mono',monospace">${b.amt}</span></div>`).join('');
+document.getElementById('portalCol').innerHTML = portalDocs.map(d =>
+  `<div style="display:flex;justify-content:space-between;gap:.7rem;border:1px solid var(--line2);border-radius:8px;padding:.35rem .55rem;margin-bottom:.35rem;font-size:9px;background:rgba(13,20,34,.6)"><span><b style="font-family:'JetBrains Mono',monospace;color:#cde7ff">${d.int}</b><br><span style="color:var(--dim)">${d.supplier} · ${d.ref}</span></span><span style="font-family:'JetBrains Mono',monospace">${d.amt}</span></div>`).join('');
+
+const verdicts = [
+  ['BILL/2026/10/0418', 'ETAINT-7001', 'st-ok', 'MATCHED', 'ID + supplier + amount verified — payment eligible.'],
+  ['BILL/2026/10/0421', 'ETAINT-7002', 'st-ok', 'MATCHED', 'Reference matched after zero-width/harakat strip — the diacritic trap.'],
+  ['BILL/2026/10/0427', 'ETAINT-7003', 'st-mis', 'REFERENCE_MISMATCH', 'Same ID, amount 402,900.00 vs 298,900.00 (Δ 104,000.00). Debit note suspected — HOLD payment.'],
+  ['BILL/2026/10/0433', 'ETAINT-7006', 'st-ok', 'MATCHED', 'Matched on portal internal ID; supplier confirmed submission.'],
+  ['BILL/2026/10/0440', 'ETAINT-7005', 'st-rej', 'ETA_REJECTED', 'Supplier rejected on portal; CN-1144 → reverse/re-issue in Odoo. Do NOT pay.'],
+  ['—', 'ETAINT-7004', 'st-miss', 'MISSING_IN_ODOO', 'On portal, never booked in Odoo — October accrual missing. Escalate.']
+];
+const detail = document.getElementById('matchDetail');
+document.getElementById('runMatchBtn').addEventListener('click', async () => {
+  detail.textContent = 'Normalizing → indexing → matching → verifying…';
+  await new Promise(r => setTimeout(r, 650));
+  detail.innerHTML = verdicts.map(v =>
+    `<div style="display:flex;justify-content:space-between;gap:.7rem;margin:.18rem 0"><span style="font-family:'JetBrains Mono',monospace;font-size:8.5px">${v[0]} ⇄ ${v[1]}</span><span class="st ${v[2]}">${v[3]}</span></div>`).join('') +
+    `<div style="margin-top:.4rem;border-top:1px solid var(--line2);padding-top:.4rem;color:var(--txt);font-size:9px">Matched 3 · Mismatch 1 · Rejected 1 · <b style="color:#f87171">Missing-in-Odoo 1 (accrual)</b> — surfaced for the AP lead. Nothing auto-posted.</div>`;
+  toast('Match complete — 6 pairs scored');
+});
+document.getElementById('resetMatchBtn').addEventListener('click', () => { detail.textContent = 'Reset. Run again…'; });
+
+/* ================= module switching ================= */
+const sections = { lc: 'mod-lc', match: 'mod-match', vat: 'mod-vat' };
+document.querySelectorAll('.nx-item[data-mod]').forEach(btn => btn.addEventListener('click', () => {
+  document.querySelectorAll('.nx-item[data-mod]').forEach(b => b.classList.toggle('on', b === btn));
+  for (const [k, id] of Object.entries(sections)) document.getElementById(id).hidden = k !== btn.dataset.mod;
+  toast('Tab → ' + btn.textContent.trim());
+}));
+</script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>

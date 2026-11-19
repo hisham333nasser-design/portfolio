@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Odoo Problem-Solving Library — Hisham Nasser</title>
+  <meta name="description" content="Real Odoo 17 problems root-caused and fixed: ETA e-invoice matching, diacritic normalization, O(n) lookups, landed costs, phantom stock, P2P controls, branch transfers, auth design." />
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://hisham333nasser-design.github.io/portfolio/library.html" />
+  <meta property="og:title" content="Odoo Problem-Solving Library" />
+  <meta property="og:description" content="Root cause → fix → impact, from production Odoo 17 work. Searchable and tagged." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-nav">
+  <div class="container nav-inner">
+    <a class="brand" href="index.html"><span class="brand-dot"></span>Hisham Nasser</a>
+    <nav aria-label="Primary"><ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="case-study-nexus.html">Case Study</a></li>
+      <li><a href="library.html" aria-current="page">Problem Library</a></li>
+      <li><a href="demo.html">Demo</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><button class="theme-toggle" data-theme-toggle aria-label="Toggle dark mode">◐</button></li>
+    </ul></nav>
+  </div>
+</header>
+
+<main id="main" class="container" style="padding-top:2.5rem">
+  <span class="card-tag">Knowledge base</span>
+  <h1 style="margin:.4rem 0 .6rem">Odoo Problem-Solving Library</h1>
+  <p class="lead" style="max-width:64ch;color:var(--text-dim)">Twelve real problems from production Odoo 17 work, written as Problem → Root cause → Fix → Impact. Search or filter by area. Snippets are sanitized teaching examples, not production code.</p>
+
+  <div class="filters" style="margin-top:1.4rem">
+    <input id="q" type="search" placeholder="Search problem, fix, tag…" aria-label="Search entries" />
+    <select id="tag" aria-label="Filter by area"><option value="">All areas</option></select>
+    <select id="level" aria-label="Filter by difficulty"><option value="">All levels</option><option>Intermediate</option><option>Advanced</option></select>
+    <span id="count" class="mono" aria-live="polite" style="align-self:center;color:var(--text-dim);font-size:.8rem"></span>
+  </div>
+
+  <div id="entries"></div>
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <span>© <span data-year></span> Hisham Nasser Ibrahim</span>
+    <span><a href="index.html">← Home</a> · <a href="case-study-nexus.html">Case Study →</a></span>
+  </div>
+</footer>
+
+<script>
+const ENTRIES = [
+  { t: "Invisible Arabic diacritics broke ETA ↔ Odoo exact matching", area: "integrations", level: "Advanced", problem: "Vendor bills referenced the ETA portal internal ID, but the match failed for Arabic supplier documents: portal IDs contained harakat (َ ُ ّ) and zero-width characters that Odoo stored differently.", cause: "Legacy matcher compared raw strings. NFD/NFC normalization differences + Arabic diacritics + casefold made logically-identical IDs unequal.", fix: "Normalize before comparison: NFKC → strip zero-width (ZWSP/ZWNJ) → strip harakat range → casefold → trim. Re-verdict legacy 'MATCHED' results containing diacritics.", snippet: "def norm(s):\n    s = unicodedata.normalize('NFKC', s or '')\n    s = ZERO_WIDTH.sub('', s)\n    s = DIACRITICS.sub('', s)\n    return s.casefold().strip()", impact: "Hundreds of false REFERENCE_MISMATCH verdicts eliminated; the pipeline became trustworthy enough to escalate missing-in-Odoo findings to management.", lesson: "Never compare user-facing IDs raw — normalize on write and on read, and audit your legacy verdicts after any normalization change." },
+  { t: "O(n²) reconciliation scan → O(n) indexed match", area: "performance", level: "Advanced", problem: "Every lookup scanned the full ETA document list; each click took ~23 seconds and froze the internal UI.", cause: "Matcher did nested loops; no hash index on the normalized document ID.", fix: "Build one dict: normalized_id → doc. Lookups become O(1); full sync becomes streaming (fetch → upsert → single pass match).", snippet: "idx = {norm(d['internal_id']): d for d in docs}\nbill_norm = norm(bill.ref)\nhit = idx.get(bill_norm)", impact: "Re-lookup path went from 22.9s to 74–670ms — one-shot sync replaced per-click scanning entirely.", lesson: "When a single dataset feeds repeated point lookups, an index isn't an optimization — it's the design." },
+  { t: "Legacy 'MATCHED' count was inflated — false positives", area: "data-quality", level: "Advanced", problem: "An older reconciliation run reported hundreds of matches that didn't survive scrutiny (wrong supplier, amount, or date behind the same ID).", cause: "Single-dimension matching (ID only) with no secondary verification and no completeness guard.", fix: "18-status model with multi-signal verification: ID exact → supplier RIN → doc type → signed amount within tolerance → date window. Completeness guard blocks 'all matched' when inputs are partial.", snippet: "class V: MATCHED='MATCHED'; REF_MISMATCH='REFERENCE_MISMATCH'; MISSING_PORTAL='MISSING_IN_ODOO'; REJECTED='ETA_REJECTED'…\nif not amount_ok or not supplier_ok: v = V.REF_MISMATCH", impact: "Questionable legacy matches were caught and re-verdicted before anyone signed off the VAT books.", lesson: "A match is a claim, not a fact — verify amount and counterparty, and never trust counts produced by unguarded pipelines." },
+  { t: "Landed-cost postings could double-post to stock valuation", area: "inventory", level: "Advanced", problem: "Applying import-cost lines via script risked duplicate journal entries and mispriced inventory valuation.", cause: "Direct writes with no pre-flight checks and no rollback signal if the model had drifted.", fix: "DRAFT-only creation by default + explicit --apply gate + before/after money snapshot; abort on any drift; audit JSON + audit.sqlite row per change; journals named 'Landed Cost' only.", snippet: "pre = snapshot(lc)\nif args.apply and pre == snapshot(lc): allocate(); else: abort('drift detected')", impact: "Zero silent re-posts; every applied change traceable to a human approval.", lesson: "Automation that writes money needs a dry-run, a drift check, and a paper trail — in that order." },
+  { t: "Phantom 'local supplier' items: 96.8M EGP of zero-value stock", area: "inventory", level: "Advanced", problem: "Egyptian local-service items were configured as stockable with quantities on hand — inflating the balance sheet and stock value.", cause: "Item type/category legacy from migration; no periodic review of quants on service items.", fix: "Aggregate first (read-only): count quants, sum on-hand by category. Classify: eligible service→write to expense via JE; review-physical; blocked-move. Pilot on 49 items before any write; one approved JE per batch.", snippet: "-- read-only discovery FIRST\nSELECT count(*), sum(quantity) FROM stock_quant WHERE product_id IN (...)", impact: "Phantom stock diagnosed at scale; pilot correction posted (208k EGP on 49 items) before full rollout.", lesson: "Measure the full population before correcting one row — and get sign-off between diagnose and write." },
+  { t: "POs created off-system → duplicate payments", area: "p2p", level: "Intermediate", problem: "Procurement ran by paper/WhatsApp; Odoo POs were created retroactively, so no match stood between invoices and payments — duplicates paid suppliers twice.", cause: "Control gap, not software gap: no mandatory RFQ→PO in Odoo; manual register allowed duplicates to slip.", fix: "Design + SOP: RFQ mandatory in Odoo; auto-PO from approved RFQ; 3-way match checkpoint blocks payment without PO+receipt+bill agreement; normalized duplicate detection; weekly aging push to AP.", snippet: "# control, not code:\n# RFQ (in Odoo) → approval → PO → receipt → bill → match ✓ → pay", impact: "Framework adopted by management as the target operating model; P2P cycle-time targets set for the AP team.", lesson: "Sometimes the 'Odoo optimization' is a policy with enforcement points, and the software is just the checkpoint." },
+  { t: "PR↔PO linkage at zero; invoice origin missing on bills", area: "p2p", level: "Intermediate", problem: "Purchase requests had no system link to orders; most vendor bills arrived without PO reference, defeating matching.", cause: "P2P module configured but not enforced — PRs lived on paper; analytics missing on PO lines.", fix: "Discovery report with coverage stats per artifact (PO lines, picking links, analytic fill); P2P Control Tower surfaces every bill without PO origin; mandatory invoice_origin on bill confirmation.", snippet: "-- trace chain: bill → purchase_line_id → picking → PO → analytic\nSELECT b.id, pl.order_id FROM account_move b JOIN purchase_order_line pl ON pl.id = b.purchase_line_id", impact: "Full visibility into which bills can't be 3-way matched — turning a process leak into a managed exception list.", lesson: "Coverage metrics are the cheapest audit: what's measurable gets fixed; unmeasured manual links simply vanish." },
+  { t: "Intercompany NL→EG transfer: value drifted per unit", area: "migrations", level: "Advanced", problem: "Cross-company stock transfer between Netherlands and Egypt branches accumulated value FX/rounding differences per item, blocking the interim cards' cleanup.", cause: "Intercompany flow with landed costs applied unevenly (average vs exact cost per item); no per-item mirror reconciliation.", fix: "Per-item mirror JEs on the Netherlands book (Dr Interim-Received / Cr Interim-Delivered per item); reconcile 1:1 with the Egypt book twin; leave documented residue open by design instead of forcing false zeros.", snippet: "for item in items:\n    je = journal_entry(dr='Interim-Received', cr='Interim-Delivered', amount=item.delta, ref=item.code)\n    reconcile_twin(je, side='EG')", impact: "Transfer reconciled item-by-item; remaining residue explicitly documented and owned — no fake balancing entries.", lesson: "Intercompany clean-up is per-item archaeology, not a single magic journal entry — reconcile pairs, accept honest residue." },
+  { t: "VAT return risk: non-deductible purchase code treated as error", area: "reports", level: "Intermediate", problem: "Tools flagged the internal '14% (Copy)' purchase tax code as data-quality noise — but that code deliberately books non-deductible internal expenses.", cause: "No documented tax-code semantics; generic validators assumed 'copy' = mistake.", fix: "Codify tax semantics in the tool: '14%' → deductible (Box 6) subject to ETA e-invoice; '14% (Copy)' → non-deductible (excluded); 'WH' codes → excluded (withholding, not VAT); 'S' codes → VAT annexes per side.", snippet: "RULES = {'14%':'DEDUCTIBLE_BOX6', '14% (Copy)':'NON_DEDUCTIBLE', 'WH':'NOT_VAT', 'S':'SCHEDULE_TAX_ANNEX'}", impact: "Form 10 generation became trustworthy for the tax preparer; false alarms stopped, real risk (deductible VAT without e-invoice) surfaced.", lesson: "In tax systems, 'weird' configuration is often deliberate — learn the semantics before flagging anything." },
+  { t: "PDF supplier invoices: layout variance defeated naive regex", area: "integrations", level: "Intermediate", problem: "RFQ Builder tried to read invoice PDFs to pre-fill vendor docs; field positions varied wildly between suppliers.", cause: "Single-layout regex per supplier — broke on every new template.", fix: "Strategy pattern: anchor on stable labels (Invoice No / Date / Total / Tax) with tolerant separators; fallbacks; never block on failure — produce a draft + 'needs review' flag instead of wrong data.", snippet: "ANCHORS = [('invoice_no', r'(?:invoice|inv)[.# ]*([A-Z0-9\\-/]+)'), ('total', r'(?:total|grand total)[^\\d]*([\\d,]+\\.\\d{2})')]", impact: "Manual re-typing of invoice headers into RFQs removed for known layouts; unknown layouts degrade gracefully to review queue.", lesson: "Parsing is best-effort augmentation, never a silent source of truth — always keep the human review step." },
+  { t: "LAN admin panel: auth that actually holds", area: "security", level: "Advanced", problem: "Internal tool needed per-user accountability on a shared office LAN — without Odoo's user model.", cause: "Ad-hoc logins creep; default installs are world-open on the subnet.", fix: "Standalone auth kit: PBKDF2-HMAC-SHA256 (150k+ iterations), HttpOnly+SameSite cookies, subnet-bound sessions, per-user tab/action permissions, 5-fail→30min lockout, 3-gate setup (empty vault + one-time token + server-PC IP), default-deny for unknown POSTs, hash-chained audit log, 72h read-only kill switch.", snippet: "if not route_allowed(user, tab, action): return deny(404)\naudit.append(hash(prev_hash + event))", impact: "The suite became safe to hand to the whole finance team — every action attributable, secrets masked at /api/config, logs tamper-evident.", lesson: "Even internal tools deserve source-grade auth; the cheapest control is default-deny." },
+  { t: "Manual Excel AP aging → one SQLite source of truth", area: "performance", level: "Intermediate", problem: "Aging reports were rebuilt by hand weekly from exports — inconsistent buckets, stale data, no share of the same filters.", cause: "Spreadsheet as database; no incremental refresh; every report a fresh fork.", fix: "Sync Odoo → SQLite with transactional upserts + completeness guard; parameterized aging query (0–30 / 31–60 / 61–90 / 90+); CSV/Excel export on demand; users see one number or it isn't shown at all.", snippet: "INSERT ... ON CONFLICT(ref) DO UPDATE SET …;\n-- aging = one query, not 4 pivot tables", impact: "Aging moved from a weekly chore to a daily, self-consistent view shared by AP and management.", lesson: "Dashboards lie when they disagree; one store + one query is how you make everyone argue about the right thing." }
+];
+
+const entriesEl = document.getElementById('entries');
+const q = document.getElementById('q');
+const tag = document.getElementById('tag');
+const level = document.getElementById('level');
+const count = document.getElementById('count');
+
+const areas = [...new Set(ENTRIES.map(e => e.area))].sort();
+for (const a of areas) { const o = document.createElement('option'); o.value = a; o.textContent = a; tag.appendChild(o); }
+
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function render() {
+  const needle = q.value.trim().toLowerCase();
+  const tf = tag.value, lf = level.value;
+  const hits = ENTRIES.filter(e => {
+    if (tf && e.area !== tf) return false;
+    if (lf && e.level !== lf) return false;
+    if (!needle) return true;
+    return [e.t, e.problem, e.cause, e.fix, e.impact, e.lesson, e.area, e.level].join(' ').toLowerCase().includes(needle);
+  });
+  count.textContent = hits.length + ' / ' + ENTRIES.length + ' entries';
+  entriesEl.innerHTML = hits.map(e => `
+    <article class="entry">
+      <div><span class="tag">${esc(e.area)}</span><span class="tag">${esc(e.level)}</span></div>
+      <h3 style="margin-top:.4rem">${esc(e.t)}</h3>
+      <div class="entry-body">
+        <div><h4>Problem</h4><p>${esc(e.problem)}</p></div>
+        <div><h4>Root cause</h4><p>${esc(e.cause)}</p></div>
+        <div><h4>Fix</h4><p>${esc(e.fix)}</p><pre class="code">${esc(e.snippet)}</pre></div>
+        <div><h4>Impact &amp; lesson</h4><p><b>${esc(e.impact)}</b></p><p>${esc(e.lesson)}</p></div>
+      </div>
+    </article>`).join('') || '<p style="color:var(--text-dim)">No entries match — clear the filters.</p>';
+}
+[q, tag, level].forEach(el => el.addEventListener('input', render));
+render();
+</script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>

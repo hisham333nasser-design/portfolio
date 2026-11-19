@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://hisham333nasser-design.github.io/portfolio/sitemap.xml

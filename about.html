@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>About & Contact — Hisham Nasser</title>
+  <meta name="description" content="Finance Systems Engineer based in Giza, Egypt. AP/P2P/treasury operator who builds audit-ready automation on Odoo 17 and Egypt's ETA e-invoicing stack." />
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://hisham333nasser-design.github.io/portfolio/about.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-nav">
+  <div class="container nav-inner">
+    <a class="brand" href="index.html"><span class="brand-dot"></span>Hisham Nasser</a>
+    <nav aria-label="Primary"><ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="case-study-nexus.html">Case Study</a></li>
+      <li><a href="library.html">Problem Library</a></li>
+      <li><a href="demo.html">Demo</a></li>
+      <li><a href="about.html" aria-current="page">About</a></li>
+      <li><button class="theme-toggle" data-theme-toggle aria-label="Toggle dark mode">◐</button></li>
+    </ul></nav>
+  </div>
+</header>
+
+<main id="main" class="container" style="padding-top:3rem">
+  <div class="about-grid">
+    <section aria-labelledby="about-h">
+      <span class="card-tag">About</span>
+      <h1 id="about-h" style="margin:.4rem 0 1rem">Accountant who ships.</h1>
+      <div class="prose">
+        <p>I'm Hisham Nasser Ibrahim - a finance professional with 5+ years across accounts payable, treasury operations and financial reporting in real estate, hospitality and manufacturing. I'm FMVA- and BIDA-certified (Corporate Finance Institute).</p>
+        <p>What makes me different: I don't just close the books — I build the tooling that keeps them clean. I designed and shipped an internal finance operations suite on top of a live Odoo 17 Enterprise instance (ETA e-invoice reconciliation, VAT Form 10, P2P traceability, intercompany transfers, landed costs), used daily by the AP team.</p>
+        <h3>How I think</h3>
+        <ul>
+          <li>Controls at the source, not cleanup after the fact.</li>
+          <li>Read-only first; writes only behind explicit approval with a before/after snapshot.</li>
+          <li>Every number on a dashboard must trace to one store, one query.</li>
+          <li>English for deliverables, Arabic for people — bilingual by default.</li>
+        </ul>
+        <h3>Now</h3>
+        <p>Accounts Payable Analyst at an industrial-services group in Cairo — running end-to-end P2P: three-way matching, vendor reconciliation, ETA e-invoice checks, project-level cost allocation, and the internal suite described in the case study.</p>
+        <h3>Education &amp; certifications</h3>
+        <p>B.Com. Financial Accounting — Cairo University (2019–2023). FMVA (2025) · BIDA (2026) · McKinsey Forward (2026) · Google Prompting Essentials (2025).</p>
+        <p>Arabic — native · English — professional · German — basic.</p>
+      </div>
+    </section>
+
+    <section id="contact" aria-labelledby="contact-h">
+      <h2 id="contact-h" style="margin-bottom:1rem">Let's talk</h2>
+      <form class="contact" id="contact-form" action="https://formspree.io/f/FORM_ID" method="POST">
+        <div><label for="name">Name</label><input id="name" name="name" required autocomplete="name" /></div>
+        <div><label for="email">Email</label><input id="email" name="email" type="email" required autocomplete="email" /></div>
+        <div><label for="message">Message</label><textarea id="message" name="message" rows="4" required></textarea></div>
+        <p class="form-note">Prefer email? <a href="mailto:hisham333nasser@gmail.com">hisham333nasser@gmail.com</a> · <a href="https://www.linkedin.com/in/hisham-nasser-h968461" rel="me">LinkedIn</a></p>
+        <button class="btn btn-primary" type="submit">Send message</button>
+        <p class="form-status" role="status"></p>
+        <p class="form-note">Form endpoint pending (Formspree). Until it's wired, use the email link — it's the fastest channel anyway.</p>
+      </form>
+    </section>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <span>© <span data-year></span> Hisham Nasser Ibrahim</span>
+    <span><a href="index.html">← Home</a> · <a href="https://www.linkedin.com/in/hisham-nasser-h968461">LinkedIn</a></span>
+  </div>
+</footer>
+<script src="assets/js/main.js"></script>
+</body>
+</html>
